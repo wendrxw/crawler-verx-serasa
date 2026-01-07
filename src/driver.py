@@ -1,5 +1,4 @@
 import time
-import argparse
 import pandas as pd
 from datetime import datetime
 from selenium import webdriver
@@ -8,10 +7,16 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 from decouple import config
+from .logger import setup_logger
 
 
 class Handler:
-    def __init__(self):
+    def __init__(self, filters: str = None):
+        self.filters = filters
+        self.logger = setup_logger()
+
+        self.logger.info("Iniciando crawler sem filtros" if not self.filters else f"Iniciando crawler filtrando pela região: {self.filters}")
+
         self.now = datetime.today().strftime("%Y_%m_%d_%H_%M_%S")
         self.url = config("URL")
         self.options = webdriver.ChromeOptions()
@@ -21,11 +26,68 @@ class Handler:
             options=self.options
         )
         self.driver.get(self.url)
+        self.filter_by_region()
         WebDriverWait(self.driver, 15).until(
             EC.presence_of_element_located(
                 (By.CSS_SELECTOR, "table tbody tr")
             )
         )
+
+    def filter_by_region(self):
+        if not self.filters:
+            return
+        
+        WebDriverWait(
+            self.driver, 
+            10
+        ).until(
+            EC.element_to_be_clickable((
+                By.XPATH, 
+                "//button[contains(., 'Filters')]"
+            ))
+        ).click()
+
+        clear_all_btn = WebDriverWait(
+            self.driver, 
+            5
+        ).until(
+            EC.element_to_be_clickable((
+                By.XPATH,
+                "//button[.//text()[contains(., 'Clear All')]]"
+            ))
+        )
+        self.driver.execute_script(
+            "arguments[0].click();",
+            clear_all_btn
+        )
+        time.sleep(0.5)
+        
+        WebDriverWait(
+            self.driver,
+            10
+        ).until(
+            EC.element_to_be_clickable((
+                By.XPATH,
+                "//button[contains(., 'Region')]"
+            ))
+        ).click()
+
+        WebDriverWait(
+            self.driver,
+            10
+        ).until(
+            EC.element_to_be_clickable((
+                By.XPATH,
+                f"//span[text()='{self.filters}']"
+            ))
+        ).click()
+
+        WebDriverWait(self.driver, 10).until(
+            EC.element_to_be_clickable((
+                By.XPATH, 
+                "//button[.//text()[contains(., 'Apply')]]"
+            ))
+        ).click()
 
     def extract(self):
         soup = BeautifulSoup(self.driver.page_source, "lxml")
@@ -46,8 +108,6 @@ class Handler:
                 "name": name,
                 "price": price
             })
-
-            print(f'{results=}')
 
         return results
     
@@ -89,7 +149,7 @@ class Handler:
         page = 1
 
         while True:
-            print(f'{page=}')
+            self.logger.info(f"Coletando dados da pagina {page}")
 
             data = self.extract()
             results.extend(data)
@@ -101,8 +161,9 @@ class Handler:
 
         return results
 
-    
     def load_as_csv(self, data: list):
+        self.logger.info("Iniciando gravação dos dados para CSV")
         df = pd.DataFrame(data)
         df = df[["symbol", "name", "price"]]
         df.to_csv(f"stocks_{self.now}.csv", index=False)
+        self.logger.info("Gravação dos dados para CSV finalizada")
