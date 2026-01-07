@@ -21,7 +21,12 @@ class Handler:
         self.url = config("URL")
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("--disable-blink-features=AutomationControlled")
-        self.options.add_argument("--start-maximized")
+        self.options.add_argument("--headless=new")
+        self.options.add_argument("--disable-gpu")
+        self.options.add_argument("--no-sandbox")
+        self.options.add_argument("--disable-dev-shm-usage")
+        self.options.add_argument("--disable-blink-features=AutomationControlled")
+        self.options.add_argument("--window-size=1920,1080")
         self.driver = webdriver.Chrome(
             options=self.options
         )
