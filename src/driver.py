@@ -2,11 +2,6 @@ import time
 import argparse
 import pandas as pd
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 from decouple import config
 
@@ -32,9 +27,9 @@ class Handler:
             if len(cols) < 3:
                 continue
 
-            symbol = cols[0].get_text(strip=True)
-            name = cols[1].get_text(strip=True)
-            price = cols[3].get_text(strip=True)
+            symbol = cols[1].get_text(strip=True)
+            name = cols[2].get_text(strip=True)
+            price = cols[4].get_text(strip=True)
 
             results.append({
                 "symbol": symbol,
@@ -44,4 +39,11 @@ class Handler:
 
             print(f'{results=}')
 
+            self.load_as_csv(results)
+
         return results
+    
+    def load_as_csv(self, data: list):
+        df = pd.DataFrame(data)
+        df = df[["symbol", "name", "price"]]
+        df.to_csv("stocks.csv", index=False)
