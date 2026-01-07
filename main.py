@@ -3,8 +3,9 @@ from src.driver import Handler
 
 def main():
     handler = Handler()
-
-    return handler.extract_data()
+    results = handler.run()
+    handler.load_as_csv(results)
+    return results
 
 
 if __name__ == "__main__":
