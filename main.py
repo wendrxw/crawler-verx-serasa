@@ -1,5 +1,9 @@
+from src.driver import Handler
+
+
 def main():
-    print("Hello from crawler!")
+    handler = Handler()
+    return handler.extract_data()
 
 
 if __name__ == "__main__":
